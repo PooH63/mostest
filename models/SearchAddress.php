@@ -58,7 +58,7 @@ class SearchAddress extends ActiveRecord
         if (!empty($request)) {
             \Yii::$app->db->createCommand()->
             insert($this->tableName(), [
-                'request' => $request,
+                'request'   => $request,
             ])->execute();
         }
     }

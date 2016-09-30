@@ -127,6 +127,8 @@ class SiteController extends Controller
             }
         }
 
+        $data['search_history'] = $searchAddressModel->selectRecords(5);
+
         return $this->render('search', [
             'model' => $searchAddressForm,
             'data' => $data,

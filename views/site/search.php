@@ -31,26 +31,46 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <?php ActiveForm::end(); ?>
 
-    <?php if(!empty($data)) { ?>
-    <div class="search-results">
-        <table class="table table-striped table-bordered">
-            <tr>
-                <td width="20%">
-                    Your search request
-                </td>
-                <td width="80%">
-                    <?= (!empty($data['search_request'])) ? $data['search_request'] : '' ?>
-                </td>
-            </tr>
-            <tr>
-                <td width="20%">
-                    Your search responce
-                </td>
-                <td width="80%">
-                    <?= (!empty($data['search'])) ? $data['search'] : '' ?>
-                </td>
-            </tr>
-        </table>
-    </div>
+    <?php if (!empty($data['search_request']) || !empty($data['search'])) { ?>
+        <div class="search-results">
+            <table class="table table-striped table-bordered">
+                <tr>
+                    <td width="20%">
+                        Your search request
+                    </td>
+                    <td width="80%">
+                        <?= (!empty($data['search_request'])) ? $data['search_request'] : '' ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="20%">
+                        Your search responce
+                    </td>
+                    <td width="80%">
+                        <?= (!empty($data['search'])) ? $data['search'] : '' ?>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    <?php } ?>
+
+    <?php if (!empty($data['search_history'])) { ?>
+        <div class="search-history">
+            <table class="table table-striped table-bordered">
+                <?php $i = 0; foreach ($data['search_history'] as $request) { $i++; ?>
+                    <tr>
+                        <td width="10%">
+                            <?= $i ?>
+                        </td>
+                        <td width="70%">
+                            <?= $request['request'] ?>
+                        </td>
+                        <td width="20%">
+                            <?= $request['c_time'] ?>
+                        </td>
+                    </tr>
+                <?php } ?>
+            </table>
+        </div>
     <?php } ?>
 </div>
