@@ -20,9 +20,17 @@ class SearchAddress extends ActiveRecord
     /**
      * @return string название таблицы
      */
-    public static function tableName()
+    public static function tableSearchRequestName()
     {
         return 'search_requests';
+    }
+
+    /**
+     * @return string название таблицы
+     */
+    public static function tableSearchRequestCountName()
+    {
+        return 'search_requests_count';
     }
 
     /**
@@ -40,26 +48,97 @@ class SearchAddress extends ActiveRecord
      *
      * @return array
      */
-    public function selectRecords($limit = 1)
+    public function selectSearchRequests($limit = 1)
     {
-        $result = \Yii::$app->db->createCommand('SELECT * FROM ' . $this->tableName() . ' ORDER BY id DESC LIMIT :limit')
+        $result = \Yii::$app->db->createCommand('SELECT t1.*, t2.`count` FROM ' . $this->tableSearchRequestName() . ' as t1'
+                                                . ' LEFT JOIN ' . $this->tableSearchRequestCountName() . ' as t2 USING(`kladr_code`)'
+                                                . ' ORDER BY t1.id DESC LIMIT :limit')
                                 ->bindValue(':limit', $limit)
                                 ->queryAll();
+
         return $result;
+    }
+
+    /**
+     * найти запись в таблице поисковых запросов по id записи
+     *
+     * @param $id
+     *
+     * @return array|bool
+     */
+    public function getSearchRequestById($id)
+    {
+        if (!$id || !is_numeric($id)) {
+            return false;
+        }
+
+        return \Yii::$app->db->createCommand('SELECT * FROM ' . $this->tableSearchRequestName() . ' WHERE id = :id LIMIT 1')
+                             ->bindValue(':id', $id)
+                             ->queryOne();
+
     }
 
     /**
      * Вставить запись в таблицу
      *
-     * @param bool|string $request
+     * @param array $data
+     *
+     * @return bool
+     * @internal param bool|string $request
+     *
      */
-    public function insertRecords($request = '')
+    public function insertRecords(array $data = [])
     {
-        if (!empty($request)) {
-            \Yii::$app->db->createCommand()->
-            insert($this->tableName(), [
-                'request'   => $request,
+        if (empty($data['fullName']) || empty($data['id'])) {
+            return false;
+        }
+
+        \Yii::$app->db->createCommand()->
+        insert($this->tableSearchRequestName(), [
+            'request'    => $data['fullName'],
+            'kladr_code' => $data['id'],
+        ])->execute();
+    }
+
+    /**
+     * Вставить запись в таблицу
+     *
+     * @param string $request
+     * @param array  $responce
+     *
+     * @return bool
+     * @internal param array $data
+     *
+     * @internal param bool|string $request
+     */
+    public function insertRecordsTransaction($request = '', array $responce = [])
+    {
+        if (empty($responce['fullName']) || empty($responce['id']) || empty($request)) {
+            return false;
+        }
+
+        $connection = \Yii::$app->db;
+        $transaction = $connection->beginTransaction();
+
+        try {
+            $connection->createCommand()->insert($this->tableSearchRequestName(), [
+                'request'    => $request,
+                'responce'   => $responce['fullName'],
+                'kladr_code' => $responce['id'],
             ])->execute();
+
+            $connection->createCommand('INSERT INTO ' . $this->tableSearchRequestCountName() . '(`kladr_code`, `count`) VALUES(:kladr_code, :count)  ON DUPLICATE KEY UPDATE count = count + 1')
+                       ->bindValue(':kladr_code', $responce['id'])
+                       ->bindValue(':count', 1)
+                       ->execute();
+
+            $transaction->commit();
+
+            return true;
+        } catch (CDbException$e) {
+            $transaction->rollBack();
+
+            return false;
         }
     }
 }

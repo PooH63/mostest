@@ -10,6 +10,7 @@ $config = [
         'request'      => [
             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
             'cookieValidationKey' => '6TUuSN_-XHgFchNFghk294AuQAEEa2nr',
+            'enableCsrfValidation'=>true,
         ],
         'cache'        => [
             'class' => 'yii\caching\FileCache',
@@ -45,6 +46,9 @@ $config = [
                 '<_c:[\w\-]+>/<id:\d+>'              => '<_c>/view',
                 '<_c:[\w\-]+>'                       => '<_c>/index',
                 '<_c:[\w\-]+>/<_a:[\w\-]+>/<id:\d+>' => '<_c>/<_a>',
+
+                '<controller:\w+>/view/<id:\d+>',
+                '<controller:\w+>/<action:\w+>/<id:\d+>',
             ],
         ],
     ],

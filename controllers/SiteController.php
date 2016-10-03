@@ -10,6 +10,7 @@ use app\models\LoginForm;
 use app\models\ContactForm;
 use app\models\SearchAddressForm;
 use app\models\SearchAddress;
+use app\components\helpers\KladrHelper;
 
 class SiteController extends Controller
 {
@@ -21,17 +22,17 @@ class SiteController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::className(),
-                'only' => ['logout'],
+                'only'  => ['logout'],
                 'rules' => [
                     [
                         'actions' => ['logout'],
-                        'allow' => true,
-                        'roles' => ['@'],
+                        'allow'   => true,
+                        'roles'   => ['@'],
                     ],
                 ],
             ],
-            'verbs' => [
-                'class' => VerbFilter::className(),
+            'verbs'  => [
+                'class'   => VerbFilter::className(),
                 'actions' => [
                     'logout' => ['post'],
                 ],
@@ -45,11 +46,11 @@ class SiteController extends Controller
     public function actions()
     {
         return [
-            'error' => [
+            'error'   => [
                 'class' => 'yii\web\ErrorAction',
             ],
             'captcha' => [
-                'class' => 'yii\captcha\CaptchaAction',
+                'class'           => 'yii\captcha\CaptchaAction',
                 'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
             ],
         ];
@@ -80,6 +81,7 @@ class SiteController extends Controller
         if ($model->load(Yii::$app->request->post()) && $model->login()) {
             return $this->goBack();
         }
+
         return $this->render('login', [
             'model' => $model,
         ]);
@@ -97,6 +99,26 @@ class SiteController extends Controller
         return $this->goHome();
     }
 
+    public function actionDetail($id)
+    {
+        if (!$id || !is_numeric($id)) {
+            return $this->goHome();
+        }
+
+        $searchAddressModel = new SearchAddress();
+        $search_request = $searchAddressModel->getSearchRequestById($id);
+        $search_result = [];
+
+        if (!empty($search_request['request'])) {
+            $search_result = KladrHelper::get($search_request['request']);
+        }
+
+        return $this->render('detail', [
+            'search_request' => $search_request,
+            'search_result'  => $search_result,
+        ]);
+    }
+
     /**
      * Displays search page.
      *
@@ -106,32 +128,28 @@ class SiteController extends Controller
     {
         $data = [];
         $searchAddressModel = new SearchAddress();
-        $searchAddressForm  = new SearchAddressForm();
+        $searchAddressForm = new SearchAddressForm();
 
         if ($searchAddressForm->load(Yii::$app->request->post()) && $searchAddressForm->search()) {
 
-            if(!empty($searchAddressForm->address)) {
-                $kladrApi = new \Kladr\Api('51dfe5d42fb2b43e3300006e', '86a2c2a06f1b2451a87d05512cc2c3edfdf41969');
-
-                $kladrQuery = new \Kladr\Query();
-                $kladrQuery->ContentName = $searchAddressForm->address;
-                $kladrQuery->OneString = TRUE;
-                $kladrQuery->Limit     = 5;
-
-                $arResult = $kladrApi->QueryToArray($kladrQuery);
+            if (!empty($searchAddressForm->address)) {
+                $result = KladrHelper::get($searchAddressForm->address);
 
                 $data['search_request'] = $searchAddressForm->address;
-                $data['search'] = $arResult[0]['fullName'];
+                $data['search'] = 'Not found';
 
-                $searchAddressModel->insertRecords($searchAddressForm->address);
+                if (!empty($result)) {
+                    $data['search'] = $result[0]['fullName'];
+                    $searchAddressModel->insertRecordsTransaction($data['search_request'], $result[0]);
+                }
             }
         }
 
-        $data['search_history'] = $searchAddressModel->selectRecords(5);
+        $data['search_history'] = $searchAddressModel->selectSearchRequests(5);
 
         return $this->render('search', [
             'model' => $searchAddressForm,
-            'data' => $data,
+            'data'  => $data,
         ]);
     }
 }
