@@ -99,6 +99,13 @@ class SiteController extends Controller
         return $this->goHome();
     }
 
+    /**
+     * Displays search detail information page.
+     *
+     * @param $id
+     *
+     * @return string|\yii\web\Response
+     */
     public function actionDetail($id)
     {
         if (!$id || !is_numeric($id)) {
